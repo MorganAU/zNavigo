@@ -22,6 +22,7 @@ private:
     void creerBarreEtat();
     QWidget *creerOngletPageWeb(QString url);
     QWebView *pageActuelle();
+    QWebHistory *historique();
 
 private slots:
     void precedente();
@@ -42,8 +43,16 @@ private slots:
     void chargementEnCours(int pourcentage);
     void chargementTermine(bool ok);
 
+    void menuRechercher();
+    void lancerRecherche();
+    void fermerRecherche();
+
+    void creerHistorique();
+    void afficherHistorique(QAction*action);
+
 private:
     QTabWidget *m_listeOnglets;
+    QMenu *m_menuHistorique;
 
     QAction *m_ouvrir;
     QAction *m_fermer;
@@ -55,10 +64,22 @@ private:
     QAction *m_stopLoad;
     QAction *m_actualiserPage;
     QAction *m_pageAccueil;
+    QAction *m_rechercher;
     QAction *m_go;
+    QAction *m_afficherHistorique;
+    QAction *m_effacerHistorique;
 
     QLineEdit *m_barreAdresse;
+
+    QLineEdit *m_barreRecherche;
+    QAction *m_cacherRecherche;
+    QAction *m_actionFermerRecherche;
+
+
     QProgressBar *m_progLoading;
+
+
+
 };
 
 #endif // FENPRINCIPAL_H

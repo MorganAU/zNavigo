@@ -17,7 +17,7 @@ FenPrincipal::FenPrincipal()
     //Définition de quelques propriétés de la fenêtre
     setMinimumSize(500, 350);
     setWindowIcon(QIcon("Icones/bateau.png"));
-    setWindowTitle("zNavigo");
+    setWindowTitle("zNavigo");    
 }
 
 void FenPrincipal::creerActions()
@@ -53,6 +53,13 @@ void FenPrincipal::creerActions()
     m_pageAccueil = new QAction(QIcon("Icones/home.png"), tr("Page d'a&ccueil"), this);
     connect(m_pageAccueil, SIGNAL(triggered()), this, SLOT(accueil()));
 
+    m_rechercher = new QAction(QIcon("Icones/Rechercher.png"), tr("Rechercher"), this);
+    m_rechercher->setShortcut(tr("Ctrl+F"));
+    connect(m_rechercher, SIGNAL(triggered()), this, SLOT(menuRechercher()));
+
+    m_actionFermerRecherche = new QAction(QIcon("Icones/fermerRecherche.png"), "", this);
+    connect(m_actionFermerRecherche, SIGNAL(triggered()), this, SLOT(fermerRecherche()));
+
     m_go = new QAction(QIcon("Icones/go.png"), tr("A&ller à"), this);
     connect(m_go, SIGNAL(triggered()), this, SLOT(chargerPage()));
 
@@ -81,6 +88,12 @@ void FenPrincipal::creerMenus()
     menuNavigation->addAction(m_stopLoad);
     menuNavigation->addAction(m_actualiserPage);
     menuNavigation->addAction(m_pageAccueil);
+    menuNavigation->addSeparator();
+    menuNavigation->addAction(m_rechercher);
+
+    m_menuHistorique = menuBar()->addMenu(tr("&Historique"));
+    connect(m_menuHistorique, SIGNAL(aboutToShow()), this, SLOT(creerHistorique()));
+    connect(m_menuHistorique, SIGNAL(triggered(QAction*)), this, SLOT(afficherHistorique(QAction*)));
 
     QMenu *menuAide = menuBar()->addMenu(tr("&?"));
 
@@ -92,8 +105,8 @@ void FenPrincipal::creerBarreDOutils()
 {
     m_barreAdresse = new QLineEdit;
     connect(m_barreAdresse, SIGNAL(returnPressed()), this, SLOT(chargerPage()));
-
-
+    m_barreRecherche = new QLineEdit;
+    connect(m_barreRecherche, SIGNAL(returnPressed()), this, SLOT(lancerRecherche()));
 
     QToolBar *toolBarNavigation = addToolBar(tr("Navigation"));
 
@@ -104,6 +117,14 @@ void FenPrincipal::creerBarreDOutils()
     toolBarNavigation->addAction(m_pageAccueil);
     toolBarNavigation->addWidget(m_barreAdresse);
     toolBarNavigation->addAction(m_go);
+    toolBarNavigation->addAction(m_rechercher);
+
+    m_cacherRecherche = new QAction(this);
+    m_cacherRecherche = toolBarNavigation->addWidget(m_barreRecherche);
+    m_cacherRecherche->setVisible(false);
+
+    toolBarNavigation->addAction(m_actionFermerRecherche);
+    m_actionFermerRecherche->setVisible(false);
 }
 
 void FenPrincipal::creerBarreEtat()
@@ -113,6 +134,7 @@ void FenPrincipal::creerBarreEtat()
     m_progLoading->setMaximumHeight(14);
     statusBar()->addWidget(m_progLoading, 1);
 }
+
 
 
 
@@ -162,7 +184,10 @@ QWebView *FenPrincipal::pageActuelle()
     return m_listeOnglets->currentWidget()->findChild<QWebView *>();
 }
 
-
+QWebHistory *FenPrincipal::historique()
+{
+    return pageActuelle()->page()->history();
+}
 
 //Slots
 
@@ -199,7 +224,7 @@ void FenPrincipal::aPropos()
 
 void FenPrincipal::nouvelOnglet()
 {
-    int indexNouvelOnglet = m_listeOnglets->addTab(creerOngletPageWeb(tr("html/page_blanche.html")), tr("(Nouvelle page"));
+    int indexNouvelOnglet = m_listeOnglets->addTab(creerOngletPageWeb(tr("http://google.fr")), tr("(Nouvelle page"));
     m_listeOnglets->setCurrentIndex(indexNouvelOnglet);
 
     m_barreAdresse->setText("");
@@ -275,3 +300,68 @@ void FenPrincipal::chargementTermine(bool ok)
     m_progLoading->setVisible(false);
     statusBar()->showMessage(tr("Prêt"), 2000);
 }
+
+void FenPrincipal::menuRechercher()
+{
+    m_cacherRecherche->setVisible(true);
+    m_actionFermerRecherche->setVisible(true);
+}
+
+void FenPrincipal::lancerRecherche()
+{
+    pageActuelle()->findText(m_barreRecherche->text());
+}
+
+void FenPrincipal::fermerRecherche()
+{
+    m_cacherRecherche->setVisible(false);
+    m_actionFermerRecherche->setVisible(false);
+}
+
+void FenPrincipal::creerHistorique()
+{
+    //On efface le contenu précédent du menu
+    m_menuHistorique->clear();
+    //On récupère la liste complète
+    QList<QWebHistoryItem> liste = historique()->items();
+    //Et la position actuelle dans la liste
+    int indexActuel = historique()->currentItemIndex();
+
+    //On limite les éléments affichés de l'historique
+    int debut = qMax(indexActuel - 10, 0);
+    int fin = qMin(indexActuel + 5, liste.size());
+    for(int i = debut ; i < fin ; ++i)
+    {
+        QWebHistoryItem item = liste[i];
+        QString titre = item.title();
+        if(titre.isEmpty())
+        {
+            titre = item.url().toString();
+        }
+
+        //
+
+        QAction *action = m_menuHistorique->addAction(titre);
+        action->setData(i);
+
+        if(i == indexActuel)
+        {
+            QFont font = action->font();
+            font.setBold(true);
+            action->setFont(font);
+        }
+    }
+}
+
+void FenPrincipal::afficherHistorique(QAction *action)
+{
+    QWebHistory *history = historique();
+
+    bool ok = false;
+    int index = action->data().toInt(&ok);
+    if(ok)
+    {
+        history->goToItem(history->itemAt(index));
+    }
+}
+
