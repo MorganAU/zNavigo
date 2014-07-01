@@ -5,6 +5,7 @@
 #include <QWebView>
 #include <QtGui>
 #include <QtWebKit>
+#include <QSettings>
 
 
 
@@ -15,6 +16,7 @@ class FenPrincipal : public QMainWindow
 public:
     FenPrincipal();
 
+
 private:
     void creerActions();
     void creerMenus();
@@ -23,6 +25,8 @@ private:
     QWidget *creerOngletPageWeb(QString url);
     QWebView *pageActuelle();
     QWebHistory *historique();
+    void chargerOptions();
+
 
 private slots:
     void precedente();
@@ -47,8 +51,16 @@ private slots:
     void lancerRecherche();
     void fermerRecherche();
 
+    void optionTaille();
+    void tailleChoisi();
+    void optionUrl();
+    void urlChoisi();
+
     void creerHistorique();
     void afficherHistorique(QAction*action);
+
+protected:
+    void closeEvent(QCloseEvent *event);
 
 private:
     QTabWidget *m_listeOnglets;
@@ -66,8 +78,16 @@ private:
     QAction *m_pageAccueil;
     QAction *m_rechercher;
     QAction *m_go;
-    QAction *m_afficherHistorique;
-    QAction *m_effacerHistorique;
+
+    QComboBox *m_choixTaille;
+    QAction *m_cacherChoixTaille;
+    QAction *m_taillePoliceDefaut;
+    int opt_taille;
+
+    QLineEdit *m_choixUrl;
+    QAction *m_cacherUrlHome;
+    QAction *m_urlAccueilDefaut;
+    QString opt_url;
 
     QLineEdit *m_barreAdresse;
 
