@@ -6,6 +6,7 @@
 #include <QtGui>
 #include <QtWebKit>
 #include <QSettings>
+#include "FenOption.h"
 
 
 
@@ -26,7 +27,6 @@ private:
     QWebView *pageActuelle();
     QWebHistory *historique();
     void chargerOptions();
-
 
 private slots:
     void precedente();
@@ -51,20 +51,17 @@ private slots:
     void lancerRecherche();
     void fermerRecherche();
 
-    void optionTaille();
-    void tailleChoisi();
-    void optionUrl();
-    void urlChoisi();
+    void ouvrirFenOption();
+    void appliquerTaille(QString tailleFinal);
 
     void creerHistorique();
     void afficherHistorique(QAction*action);
 
-protected:
-    void closeEvent(QCloseEvent *event);
-
 private:
     QTabWidget *m_listeOnglets;
     QMenu *m_menuHistorique;
+
+    FenOption *m_fenOption;
 
     QAction *m_ouvrir;
     QAction *m_fermer;
@@ -79,15 +76,8 @@ private:
     QAction *m_rechercher;
     QAction *m_go;
 
-    QComboBox *m_choixTaille;
-    QAction *m_cacherChoixTaille;
-    QAction *m_taillePoliceDefaut;
-    int opt_taille;
-
-    QLineEdit *m_choixUrl;
-    QAction *m_cacherUrlHome;
-    QAction *m_urlAccueilDefaut;
-    QString opt_url;
+    QAction *m_parametres;
+    QString m_urlParDefaut;
 
     QLineEdit *m_barreAdresse;
 
@@ -95,11 +85,7 @@ private:
     QAction *m_cacherRecherche;
     QAction *m_actionFermerRecherche;
 
-
     QProgressBar *m_progLoading;
-
-
-
 };
 
 #endif // FENPRINCIPAL_H

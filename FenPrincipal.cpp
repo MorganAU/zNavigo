@@ -1,21 +1,29 @@
 #include "FenPrincipal.h"
+#include "FenOption.h"
 
 FenPrincipal::FenPrincipal()
 {
+    showMaximized();
     //Génération des widgets de la fenêtre principale
     creerActions();
     creerMenus();
     creerBarreDOutils();
     creerBarreEtat();
 
-    //Génération des onglets et chargement de la page d'accueil
+    //Génération des onglets, chargement de la page d'accueil et des options sauvegardées
     m_listeOnglets = new QTabWidget;
-    m_listeOnglets->addTab(creerOngletPageWeb(tr("http://www.google.fr")), tr("(Nouvelle page)"));
+
+
+    chargerOptions();
+
+    m_listeOnglets->addTab(creerOngletPageWeb(m_urlParDefaut), tr("(Nouvelle page)"));
     connect(m_listeOnglets, SIGNAL(currentChanged(int)), this, SLOT(changementOnglet(int)));
     setCentralWidget(m_listeOnglets);
 
     //Options
-    chargerOptions();
+    int size = pageActuelle()->settings()->fontSize(QWebSettings::MinimumFontSize);
+    m_fenOption = new FenOption(size, m_urlParDefaut, this);
+    connect(m_fenOption, SIGNAL(tailleChoisi(QString)), this, SLOT(appliquerTaille(QString)));
 
     //Définition de quelques propriétés de la fenêtre
     setMinimumSize(500, 350);
@@ -67,11 +75,8 @@ void FenPrincipal::creerActions()
     connect(m_go, SIGNAL(triggered()), this, SLOT(chargerPage()));
 
 
-    m_taillePoliceDefaut = new QAction(QIcon("Icones/taillePolice.png"), tr("Changer la taille police"), this);
-    connect(m_taillePoliceDefaut, SIGNAL(triggered()), this, SLOT(optionTaille()));
-
-    m_urlAccueilDefaut = new QAction(QIcon("Icones/optionUrl.png"), tr("Changer la paged'accueil"), this);
-    connect(m_urlAccueilDefaut, SIGNAL(triggered()), this, SLOT(optionUrl()));
+    m_parametres = new QAction(QIcon("Icones/ouvrirOptions.png"), tr("Paramètres"), this);
+    connect(m_parametres, SIGNAL(triggered()), this, SLOT(ouvrirFenOption()));
 
 
     m_aPropos = new QAction(tr("À pr&opos..."), this);
@@ -107,8 +112,7 @@ void FenPrincipal::creerMenus()
 
     QMenu *menuOptions = menuBar()->addMenu(tr("Options"));
 
-    menuOptions->addAction(m_taillePoliceDefaut);
-    menuOptions->addAction(m_urlAccueilDefaut);
+    menuOptions->addAction(m_parametres);
 
     QMenu *menuAide = menuBar()->addMenu(tr("&?"));
 
@@ -123,21 +127,6 @@ void FenPrincipal::creerBarreDOutils()
     connect(m_barreAdresse, SIGNAL(returnPressed()), this, SLOT(chargerPage()));
     m_barreRecherche = new QLineEdit;
     connect(m_barreRecherche, SIGNAL(returnPressed()), this, SLOT(lancerRecherche()));
-    m_choixTaille = new QComboBox;
-
-    QList<QString> items;
-    for ( int i = 6; i <= 32; ++i )
-    {
-        QString a;
-        a.setNum(i);
-
-        items.append(a);
-    }
-    m_choixTaille->addItems(items);
-    connect(m_choixTaille, SIGNAL(currentIndexChanged(int)), this, SLOT(tailleChoisi()));
-
-    m_choixUrl = new QLineEdit;
-
 
     QToolBar *toolBarNavigation = addToolBar(tr("Navigation"));
 
@@ -150,21 +139,12 @@ void FenPrincipal::creerBarreDOutils()
     toolBarNavigation->addAction(m_go);
     toolBarNavigation->addAction(m_rechercher);
 
-
     m_cacherRecherche = new QAction(this);
     m_cacherRecherche = toolBarNavigation->addWidget(m_barreRecherche);
     m_cacherRecherche->setVisible(false);
 
     toolBarNavigation->addAction(m_actionFermerRecherche);
     m_actionFermerRecherche->setVisible(false);
-
-    m_cacherChoixTaille = new QAction(this);
-    m_cacherChoixTaille = toolBarNavigation->addWidget(m_choixTaille);
-    m_cacherChoixTaille->setVisible(false);
-
-    m_cacherUrlHome = new QAction(this);
-    m_cacherUrlHome = toolBarNavigation->addWidget(m_choixUrl);
-    m_cacherUrlHome->setVisible(false);
 }
 
 void FenPrincipal::creerBarreEtat()
@@ -190,8 +170,6 @@ QWidget *FenPrincipal::creerOngletPageWeb(QString url)
     pageWeb->settings()->setAttribute(QWebSettings::JavascriptEnabled,true);
     pageWeb->settings()->setAttribute(QWebSettings::JavaEnabled,true);
     pageWeb->settings()->setAttribute(QWebSettings::JavascriptCanOpenWindows,true);
-    pageWeb->settings()->setFontSize(QWebSettings::MinimumFontSize, m_choixTaille->currentText().toInt());
-
 
     QVBoxLayout *layout = new QVBoxLayout;
     layout->setContentsMargins(0, 0, 0, 0);
@@ -210,6 +188,7 @@ QWidget *FenPrincipal::creerOngletPageWeb(QString url)
         }
         pageWeb->load(QUrl(url));
     }
+
 
     //Gestion des signaux envoyés par la page web
     connect(pageWeb, SIGNAL(titleChanged(QString)), this, SLOT(changementTitre(QString)));
@@ -231,19 +210,22 @@ QWebHistory *FenPrincipal::historique()
     return pageActuelle()->page()->history();
 }
 
-void FenPrincipal::closeEvent(QCloseEvent *event)
-{
-    QSettings settings("Options.ini", QSettings::IniFormat);
-    settings.setValue("Police", m_choixTaille->currentIndex());
-
-    event->accept();
-}
-
 void FenPrincipal::chargerOptions()
 { 
     QSettings settings("Options.ini", QSettings::IniFormat);
-    m_choixTaille->setCurrentIndex(settings.value("Police", 6).toInt());
+    for(int i = 0 ; i < m_listeOnglets->count() ; i++ )
+    {
+        m_listeOnglets->widget(i)->findChild<QWebView *>()->settings()->setFontSize(QWebSettings::MinimumFontSize, settings.value("Police",6).toInt());
+    }
+    m_urlParDefaut = settings.value("Accueil", "http://www.google.fr").toString();
+
 }
+
+
+
+
+
+
 
 //Slots
 
@@ -280,7 +262,7 @@ void FenPrincipal::aPropos()
 
 void FenPrincipal::nouvelOnglet()
 {
-    int indexNouvelOnglet = m_listeOnglets->addTab(creerOngletPageWeb(tr("http://google.fr")), tr("Nouvelle page"));
+    int indexNouvelOnglet = m_listeOnglets->addTab(creerOngletPageWeb(m_urlParDefaut), tr("Nouvelle page"));
     m_listeOnglets->setCurrentIndex(indexNouvelOnglet);
 
     m_barreAdresse->setText("");
@@ -374,28 +356,18 @@ void FenPrincipal::fermerRecherche()
         m_actionFermerRecherche->setVisible(false);
 }
 
-void FenPrincipal::optionTaille()
+void FenPrincipal::ouvrirFenOption()
 {
-    m_cacherChoixTaille->setVisible(true);
+    m_fenOption->exec();
+
 }
 
-void FenPrincipal::tailleChoisi()
+void FenPrincipal::appliquerTaille(QString tailleFinal)
 {
-    for ( int i = 0 ; i < m_listeOnglets->count() ; i++ )
+    for(int i = 0 ; i < m_listeOnglets->count() ; i++ )
     {
-        m_listeOnglets->widget(i)->findChild<QWebView *>()->settings()->setFontSize(QWebSettings::MinimumFontSize, m_choixTaille->currentText().toInt());
+        m_listeOnglets->widget(i)->findChild<QWebView *>()->settings()->setFontSize(QWebSettings::MinimumFontSize, tailleFinal.toInt());
     }
-    m_cacherChoixTaille->setVisible(false);
-}
-
-void FenPrincipal::optionUrl()
-{
-    m_cacherUrlHome->setVisible(true);
-}
-
-void FenPrincipal::urlChoisi()
-{
-
 }
 
 void FenPrincipal::creerHistorique()
