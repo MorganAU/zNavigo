@@ -2,7 +2,9 @@ QT += widgets webkitwidgets
 
 SOURCES += \
     FenPrincipal.cpp \
-    main.cpp
+    main.cpp \
+    FenOption.cpp
 
 HEADERS += \
-    FenPrincipal.h
+    FenPrincipal.h \
+    FenOption.h
